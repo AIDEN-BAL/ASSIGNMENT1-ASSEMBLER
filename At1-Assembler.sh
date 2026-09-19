@@ -56,3 +56,32 @@ if [[ "$n_values" == "0" ]]; then
     
     exit 0
 fi
+# checks that if program promises 2 n values they both are there
+if [[ "$n_values" == "2" ]]; then
+    if [[ ${#lines[@]} -lt 3 ]]; then
+        echo "usage: line 1 is 2 but line 2 and/or line 3 is missing"
+        exit 1
+    fi
+# set variables for both variables
+    val1="${lines[1]}"
+    val2="${lines[2]}"
+# validate both variables
+    if ! grep -Eq '^[0-9]+$' <<< "$val1"; then
+        echo "usage: line 2 must be a non-negative integer"
+        exit 1
+    fi
+
+    if ! grep -Eq '^[0-9]+$' <<< "$val2"; then
+        echo "usage: line 3 must be a non-negative integer"
+        exit 1
+    fi
+
+    if (( val1 < 0 || val1 > 127 )); then
+        echo "usage: line 2 must be in range [0,128)"
+        exit 1
+    fi
+    
+    if (( val2 < 0 || val2 > 127 )); then
+        echo "usage: line 3 must be in range [0,128)"
+        exit 1
+    fi
