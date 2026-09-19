@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 
 #Checks that the needed arguments for the command to be run.
 if [[ $# -eq 0 ]]; then
@@ -171,3 +171,28 @@ if [[ "$n_values" == "2" ]]; then
 # adds both lines into the output in hex
         printf "$(printf '\\x%02x' "$byte1")" >> "$output"
         printf "$(printf '\\x%02x' "$byte2")" >> "$output"
+# increase instruction count by 1
+        (( instr_count++ ))
+# checks if there is a quit function
+        if [[ "$instr_line" == "QUIT,0,0" ]]; then
+            quit_found=1
+            break
+        fi
+# checks if instructions are in limits
+        if (( instr_count >= max_instructions )); then
+            echo "usage: program exceeds the maximum of $max_instructions instructions"
+            exit 1
+        fi
+    done
+# enforces the program to have a quit function
+    if [[ $quit_found -eq 0 ]]; then
+        echo "usage: program does not terminate with QUIT,0,0"
+        exit 1
+    fi
+# finishes the conversion and prints the output in a vsc
+    echo "Done with the conversion"
+    echo "The content of the .bin file is:"
+    od -An -tx1 "$output" | tr -s ' ' '\n' | sed '/^$/d'
+        
+    exit 0
+fi
