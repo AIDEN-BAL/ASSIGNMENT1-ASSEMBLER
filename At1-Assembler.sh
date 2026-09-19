@@ -2,197 +2,195 @@
 
 #Checks that the needed arguments for the command to be run.
 if [[ $# -eq 0 ]]; then
-    echo "usage: no argument is provided"
-    exit 1
+    echo "usage: no argument is provided"
+    exit 1
 fi
 
 if [[ $# -gt 1 ]]; then
-    echo "usage: more than one arguments are provided"
-    exit 1
+    echo "usage: more than one arguments are provided"
+    exit 1
 fi
 
 if [[ ! -f "$1" ]]; then
-    echo "usage: input is not a file or it does not exist"
-    exit 1
+    echo "usage: input is not a file or it does not exist"
+    exit 1
 fi
 
 if [[ "$1" != *.vsc ]]; then
-    echo "usage: input does not have the extension .vsc"
-    exit 1
+    echo "usage: input does not have the extension .vsc"
+    exit 1
 fi
 #Empty array for reading lines
 lines=()
 while IFS= read -r line || [[ -n "$line" ]]; do
-    lines+=("$line")
+    lines+=("$line")
 done < "$1"
 #If lines are empty quit as no program is present in vsc
 if [[ ${#lines[@]} -eq 0 ]]; then
-    echo "usage: the file is empty – no .bin file is produced"
-    exit 1
+    echo "usage: the file is empty – no .bin file is produced"
+    exit 1
 fi
 # sets n values as first line
 n_values="${lines[0]}"
 #Checks if n values are either 0 or 2
 if [[ "$n_values" != "0" && "$n_values" != "2" ]]; then
-    echo "usage: line 1 must be 0 or 2"
-    exit 1
+    echo "usage: line 1 must be 0 or 2"
+    exit 1
 fi
 # sets an output as a bin file
 output="${1%.vsc}.bin"
 # If n value is 0 it must be a quit program
 if [[ "$n_values" == "0" ]]; then
-    if [[ ${#lines[@]} -ne 2 || "${lines[1]}" != "QUIT,0,0" ]]; then
-        echo "usage: when line 1 is 0, line 2 must be exactly QUIT,0,0"
-        exit 1
-    fi
+    if [[ ${#lines[@]} -ne 2 || "${lines[1]}" != "QUIT,0,0" ]]; then
+        echo "usage: when line 1 is 0, line 2 must be exactly QUIT,0,0"
+        exit 1
+    fi
 #Initiate the quit and exits as 0
-    {
-        printf '\x20'
-        printf '\x00'
-    } > "$output" 
-    echo "It is a QUIT program"
-    echo "The content of the .bin file is"
-    od -An -tx1 "$output" | tr -s ' ' '\n' | sed '/^$/d'
-    
-    exit 0
+    {
+        printf '\x20'
+        printf '\x00'
+    } > "$output"
+    echo "It is a QUIT program"
+    echo "The content of the .bin file is"
+    od -An -tx1 "$output" | tr -s ' ' '\n' | sed '/^$/d'
+    
+    exit 0
 fi
 # checks that if program promises 2 n values they both are there
 if [[ "$n_values" == "2" ]]; then
-    if [[ ${#lines[@]} -lt 3 ]]; then
-        echo "usage: line 1 is 2 but line 2 and/or line 3 is missing"
-        exit 1
-    fi
+    if [[ ${#lines[@]} -lt 3 ]]; then
+        echo "usage: line 1 is 2 but line 2 and/or line 3 is missing"
+        exit 1
+    fi
 # set variables for both variables
-    val1="${lines[1]}"
-    val2="${lines[2]}"
+    val1="${lines[1]}"
+    val2="${lines[2]}"
 # validate both variables
-    if ! grep -Eq '^[0-9]+$' <<< "$val1"; then
-        echo "usage: line 2 must be a non-negative integer"
-        exit 1
-    fi
+    if ! grep -Eq '^[0-9]+$' <<< "$val1"; then
+        echo "usage: line 2 must be a non-negative integer"
+        exit 1
+    fi
 
-    if ! grep -Eq '^[0-9]+$' <<< "$val2"; then
-        echo "usage: line 3 must be a non-negative integer"
-        exit 1
-    fi
-
-    if (( val1 < 0 || val1 > 127 )); then
-        echo "usage: line 2 must be in range [0,128)"
-        exit 1
-    fi
-    
-    if (( val2 < 0 || val2 > 127 )); then
-        echo "usage: line 3 must be in range [0,128)"
-        exit 1
-    fi
+    if ! grep -Eq '^[0-9]+$' <<< "$val2"; then
+        echo "usage: line 3 must be a non-negative integer"
+        exit 1
+    fi
+if (( val1 < 0 || val1 > 127 )); then
+        echo "usage: line 2 must be in range [0,128)"
+        exit 1
+    fi
+    
+    if (( val2 < 0 || val2 > 127 )); then
+        echo "usage: line 3 must be in range [0,128)"
+        exit 1
+    fi
 # Set up data array for printing
-    dataArray=()
-    dataArray[0]=$val1
-    dataArray[1]=$val2
+    dataArray=()
+    dataArray[0]=$val1
+    dataArray[1]=$val2
 # set all registers to 0 and set up register array
-    regArray=()
-    regArray[0]=0
-    regArray[1]=0
-    regArray[2]=0
-    regArray[3]=0
+    regArray=()
+    regArray[0]=0
+    regArray[1]=0
+    regArray[2]=0
+    regArray[3]=0
 # Create variables for the instructions loop
-    valid_instructions="LOAD STORE ADD SUB QUIT PRINT"
-    max_instructions=100
-    instr_count=0
-    quit_found=0
+    valid_instructions="LOAD STORE ADD SUB QUIT PRINT"
+    max_instructions=100
+    instr_count=0
+    quit_found=0
 # create a function for taking the instuction name and printing the opcode
-    get_opcode() {
-        case "$1" in
-            LOAD)  echo 1 ;;
-            STORE) echo 2 ;;
-            ADD)   echo 3 ;;
-            SUB)   echo 4 ;;
-            QUIT)  echo 8 ;;
-            PRINT) echo 9 ;;
-        esac
-    }
+    get_opcode() {
+        case "$1" in
+            LOAD)  echo 1 ;;
+            STORE) echo 2 ;;
+            ADD)   echo 3 ;;
+            SUB)   echo 4 ;;
+            QUIT)  echo 8 ;;
+            PRINT) echo 9 ;;
+        esac
+    }
 # Create and append teh output to include both the values
-    printf "$(printf '\\x%02x' "$val1")" > "$output"
-    printf "$(printf '\\x%02x' "$val2")" >> "$output"
+    printf "$(printf '\\x%02x' "$val1")" > "$output"
+    printf "$(printf '\\x%02x' "$val2")" >> "$output"
 # Begin loop at 4th line checking for insturctions and stores them in an array of instruction lines
-    for (( i = 3; i < ${#lines[@]}; i++ )); do
-        instr_line="${lines[$i]}"
+    for (( i = 3; i < ${#lines[@]}; i++ )); do
+        instr_line="${lines[$i]}"
 # breaks so only instuction name is shown
-        name="${instr_line%%,*}"
-    
-        match=0
+        name="${instr_line%%,*}"
+    
+        match=0
 # checks if any instuction names are valid
-        for valid in $valid_instructions; do
-            if [[ "$name" == "$valid" ]]; then
-                match=1
-                break
-            fi
-        done
+        for valid in $valid_instructions; do
+            if [[ "$name" == "$valid" ]]; then
+                match=1
+                break
+            fi
+        done
 # if no instuctions that are valid are found there is an error
-        if [[ $match -eq 0 ]]; then
-            echo "usage: line $((i+1)) has an invalid instruction '$name'"
-            exit 1
-        fi
+        if [[ $match -eq 0 ]]; then
+            echo "usage: line $((i+1)) has an invalid instruction '$name'"
+            exit 1
+        fi
 # chcks no insturctions exceed the instrction line limit
-        if (( ${#instr_line} > 11 )); then
-            echo "usage: line $((i+1)) exceeds the maximum instruction length of 11 characters"
-            exit 1
-        fi
+        if (( ${#instr_line} > 11 )); then
+            echo "usage: line $((i+1)) exceeds the maximum instruction length of 11 characters"
+            exit 1
+        fi
 # splits instruction line by comma to the 3 varaibles needed
-        IFS=',' read -r i_name i_reg i_addr <<< "$instr_line"
+        IFS=',' read -r i_name i_reg i_addr <<< "$instr_line"
 
-        # Grow the data array to remember all values in the index defaulting to 0 if there was no set value
-        if [[ -z "${dataArray[$i_addr]+x}" ]]; then                   
-            dataArray[$i_addr]=0
-        fi
+        # Grow the data array to remember all values in the index defaulting to 0 if there was no set value
+        if [[ -z "${dataArray[$i_addr]+x}" ]]; then                   
+            dataArray[$i_addr]=0
+        fi
 # simulate LOAD puts a memory address to a register
-        if [[ "$i_name" == "LOAD" ]]; then
-            regArray[$i_reg]=${dataArray[$i_addr]}
-        fi
-            
+        if [[ "$i_name" == "LOAD" ]]; then
+            regArray[$i_reg]=${dataArray[$i_addr]}
+        fi
+            
 # Simulate store puting a register value to memory
-        if [[ "$i_name" == "STORE" ]]; then
-            dataArray[$i_addr]=${regArray[$i_reg]}
-        fi
-            
+        if [[ "$i_name" == "STORE" ]]; then
+            dataArray[$i_addr]=${regArray[$i_reg]}
+        fi
 # Simulates add register + memory address
-        if [[ "$i_name" == "ADD" ]]; then
-            regArray[$i_reg]=$(( regArray[$i_reg] + dataArray[$i_addr] ))
-        fi
-        
+        if [[ "$i_name" == "ADD" ]]; then
+            regArray[$i_reg]=$(( regArray[$i_reg] + dataArray[$i_addr] ))
+        fi
+        
 # simulate SUB register - memory value
-        if [[ "$i_name" == "SUB" ]]; then
-            regArray[$i_reg]=$(( regArray[$i_reg] - dataArray[$i_addr] ))
-        fi
+        if [[ "$i_name" == "SUB" ]]; then
+            regArray[$i_reg]=$(( regArray[$i_reg] - dataArray[$i_addr] ))
+        fi
 # Get the opcode puts it into teh register then shifts it left by 2 bits then has the address as it's own byte
-        opcode="$(get_opcode "$i_name")"
-        byte1=$(( (opcode << 2) | i_reg ))
-        byte2=$i_addr
+        opcode="$(get_opcode "$i_name")"
+        byte1=$(( (opcode << 2) | i_reg ))
+        byte2=$i_addr
 # adds both lines into the output in hex
-        printf "$(printf '\\x%02x' "$byte1")" >> "$output"
-        printf "$(printf '\\x%02x' "$byte2")" >> "$output"
+        printf "$(printf '\\x%02x' "$byte1")" >> "$output"
+        printf "$(printf '\\x%02x' "$byte2")" >> "$output"
 # increase instruction count by 1
-        (( instr_count++ ))
+        (( instr_count++ ))
 # checks if there is a quit function
-        if [[ "$instr_line" == "QUIT,0,0" ]]; then
-            quit_found=1
-            break
-        fi
+        if [[ "$instr_line" == "QUIT,0,0" ]]; then
+            quit_found=1
+            break
+        fi
 # checks if instructions are in limits
-        if (( instr_count >= max_instructions )); then
-            echo "usage: program exceeds the maximum of $max_instructions instructions"
-            exit 1
-        fi
-    done
+        if (( instr_count >= max_instructions )); then
+            echo "usage: program exceeds the maximum of $max_instructions instructions"
+            exit 1
+        fi
+    done
 # enforces the program to have a quit function
-    if [[ $quit_found -eq 0 ]]; then
-        echo "usage: program does not terminate with QUIT,0,0"
-        exit 1
-    fi
+    if [[ $quit_found -eq 0 ]]; then
+        echo "usage: program does not terminate with QUIT,0,0"
+        exit 1
+    fi
 # finishes the conversion and prints the output in a vsc
-    echo "Done with the conversion"
-    echo "The content of the .bin file is:"
-    od -An -tx1 "$output" | tr -s ' ' '\n' | sed '/^$/d'
-        
-    exit 0
+    echo "Done with the conversion"
+    echo "The content of the .bin file is:"
+    od -An -tx1 "$output" | tr -s ' ' '\n' | sed '/^$/d'
+        
+    exit 0
 fi
