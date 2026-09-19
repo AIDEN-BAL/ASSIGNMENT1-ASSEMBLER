@@ -85,3 +85,32 @@ if [[ "$n_values" == "2" ]]; then
         echo "usage: line 3 must be in range [0,128)"
         exit 1
     fi
+# Set up data array for printing
+    dataArray=()
+    dataArray[0]=$val1
+    dataArray[1]=$val2
+# set all registers to 0 and set up register array
+    regArray=()
+    regArray[0]=0
+    regArray[1]=0
+    regArray[2]=0
+    regArray[3]=0
+# Create variables for the instructions loop
+    valid_instructions="LOAD STORE ADD SUB QUIT PRINT"
+    max_instructions=100
+    instr_count=0
+    quit_found=0
+# create a function for taking the instuction name and printing the opcode
+    get_opcode() {
+        case "$1" in
+            LOAD)  echo 1 ;;
+            STORE) echo 2 ;;
+            ADD)   echo 3 ;;
+            SUB)   echo 4 ;;
+            QUIT)  echo 8 ;;
+            PRINT) echo 9 ;;
+        esac
+    }
+# Create and append teh output to include both the values
+    printf "$(printf '\\x%02x' "$val1")" > "$output"
+    printf "$(printf '\\x%02x' "$val2")" >> "$output"
