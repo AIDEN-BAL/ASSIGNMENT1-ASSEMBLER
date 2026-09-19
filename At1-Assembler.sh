@@ -114,3 +114,34 @@ if [[ "$n_values" == "2" ]]; then
 # Create and append teh output to include both the values
     printf "$(printf '\\x%02x' "$val1")" > "$output"
     printf "$(printf '\\x%02x' "$val2")" >> "$output"
+# Begin loop at 4th line checking for insturctions and stores them in an array of instruction lines
+    for (( i = 3; i < ${#lines[@]}; i++ )); do
+        instr_line="${lines[$i]}"
+# breaks so only instuction name is shown
+        name="${instr_line%%,*}"
+    
+        match=0
+# checks if any instuction names are valid
+        for valid in $valid_instructions; do
+            if [[ "$name" == "$valid" ]]; then
+                match=1
+                break
+            fi
+        done
+# if no instuctions that are valid are found there is an error
+        if [[ $match -eq 0 ]]; then
+            echo "usage: line $((i+1)) has an invalid instruction '$name'"
+            exit 1
+        fi
+# chcks no insturctions exceed the instrction line limit
+        if (( ${#instr_line} > 11 )); then
+            echo "usage: line $((i+1)) exceeds the maximum instruction length of 11 characters"
+            exit 1
+        fi
+# splits instruction line by comma to the 3 varaibles needed
+        IFS=',' read -r i_name i_reg i_addr <<< "$instr_line"
+
+        # Grow the data array to remember all values in the index defaulting to 0 if there was no set value
+        if [[ -z "${dataArray[$i_addr]+x}" ]]; then                   
+            dataArray[$i_addr]=0
+        fi
