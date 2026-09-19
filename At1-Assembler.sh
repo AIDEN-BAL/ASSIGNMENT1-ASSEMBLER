@@ -145,3 +145,29 @@ if [[ "$n_values" == "2" ]]; then
         if [[ -z "${dataArray[$i_addr]+x}" ]]; then                   
             dataArray[$i_addr]=0
         fi
+# simulate LOAD puts a memory address to a register
+        if [[ "$i_name" == "LOAD" ]]; then
+            regArray[$i_reg]=${dataArray[$i_addr]}
+        fi
+            
+# Simulate store puting a register value to memory
+        if [[ "$i_name" == "STORE" ]]; then
+            dataArray[$i_addr]=${regArray[$i_reg]}
+        fi
+            
+# Simulates add register + memory address
+        if [[ "$i_name" == "ADD" ]]; then
+            regArray[$i_reg]=$(( regArray[$i_reg] + dataArray[$i_addr] ))
+        fi
+        
+# simulate SUB register - memory value
+        if [[ "$i_name" == "SUB" ]]; then
+            regArray[$i_reg]=$(( regArray[$i_reg] - dataArray[$i_addr] ))
+        fi
+# Get the opcode puts it into teh register then shifts it left by 2 bits then has the address as it's own byte
+        opcode="$(get_opcode "$i_name")"
+        byte1=$(( (opcode << 2) | i_reg ))
+        byte2=$i_addr
+# adds both lines into the output in hex
+        printf "$(printf '\\x%02x' "$byte1")" >> "$output"
+        printf "$(printf '\\x%02x' "$byte2")" >> "$output"
